@@ -1,0 +1,12 @@
+
+
+Word - betekenis
+
+Als - if
+Zo lang - while
+voor elke - foreach
+dan - if/while then
+Toon - print to console
+uit hoofdstuk title - call function title
+title\n\t - function definition
+

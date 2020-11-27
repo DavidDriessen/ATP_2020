@@ -1,0 +1,8 @@
+
+Somming
+    Heeft n.
+    Result is 0.
+    Zo lang n groter of gelijk is aan result dan:
+        Result met n ophogen.
+        n verlagen.
+    Geef result.

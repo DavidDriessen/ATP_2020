@@ -1,0 +1,10 @@
+
+Odd
+    Heeft n.
+    Als n is gelijk aan 0 dan geef onjuist.
+    Geef Even met n minus 1.
+
+Even
+    Heeft n.
+    Als n is gelijk aan 0 dan geef juist.
+    Geef Odd met n minus 1.
