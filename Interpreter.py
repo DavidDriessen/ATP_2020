@@ -1,13 +1,5 @@
-from copy import deepcopy
-from pprint import pprint
-from typing import Union
-
+from copy import copy
 from Types import *
-
-
-def interpret(code: list, obj: Spirit):
-    for line in code:
-        p, obj = interpret_line(line, obj)
 
 
 def run_operator(f, l, r, obj):
@@ -16,75 +8,128 @@ def run_operator(f, l, r, obj):
     return f(l, r), obj
 
 
+def literal(value):
+    if value.isnumeric():
+        r = int(value)
+    else:
+        r = value.strip('"')
+    return r
 
-def interpret_line(line: NamedTuple, obj: Spirit) -> tuple[Optional[Union[Spirit, str, int]], Spirit]:
-    if isinstance(line, Literal):
-        if line.value.isnumeric():
-            r = int(line.value)
+
+class Var(NamedTuple):
+    name: str
+    value: any
+
+
+class Func(NamedTuple):
+    code: list
+
+
+class FuncReturn(NamedTuple):
+    value: any
+
+
+def find_var(name, stack, got=False):
+    if len(stack) == 0:
+        if got:
+            return []
         else:
-            r = line.value.strip('"')
-        return r, obj
+            return [None]
+    if isinstance(stack[-1], Var) and stack[-1].name == name:
+        if got:
+            return find_var(name, stack[:-1], True)  # Garbeg collection
+        return [stack[-1]] + find_var(name, stack[:-1], True) + [stack[-1].value]
+    return [stack[-1]] + find_var(name, stack[:-1], got)
+
+
+def interpret_code(code: list, stack: list):
+    new_stack = stack + interpret_line(code[0], stack)
+    return interpret_code(code[1:], new_stack)
+
+
+def interpret_spirit(code: list, stack=[]):
+    new_stack = interpret_line(code[0], stack)
+    if len(new_stack) > 0 and isinstance(new_stack[-1], FuncReturn):
+        return new_stack
+    return interpret_spirit(code[1:] + [code[0]], new_stack)
+
+
+def interpret(code: list):
+    interpret_spirit(code)
+
+
+def operation(operator, l, r):
+    operators = {
+        '+': lambda l, r: l + r,
+        '-': lambda l, r: l - r,
+        '/': lambda l, r: l / r,
+        '*': lambda l, r: l * r,
+        '%': lambda l, r: l % r,
+        '=': lambda l, r: l == r,
+        '!=': lambda l, r: l != r,
+        '>': lambda l, r: l > r,
+        '<': lambda l, r: l < r,
+        '>=': lambda l, r: l >= r,
+        '<=': lambda l, r: l <= r,
+    }
+    return operators[operator](l, r)
+
+
+def init_stack(parameters: list[Parameter], stack):
+    if len(parameters) == 0:
+        return []
+    return [Var(parameters[0].id.id, interpret_line(parameters[0].value, stack)[-1])] + init_stack(parameters[1:],
+                                                                                                   stack)
+
+
+def interpret_line(line: NamedTuple, stack: list):
+    if isinstance(line, Literal):
+        return stack + [literal(line.value)]
     if isinstance(line, Identifier):
-        return obj.bindings[line.id], obj
+        return find_var(line.id, stack)
     if isinstance(line, Scoped):
-        return interpret_line(line.scope, obj)
+        return stack + interpret_line(line.scope, stack)
     if isinstance(line, Bind):
-        r, obj = interpret_line(line.value, obj)
-        obj.bindings[line.id.id] = r
-        return None, obj
+        r = interpret_line(line.value, stack)
+        # pprint(line)
+        # pprint(r[-1])
+        return r[:-1] + [Var(line.id.id, r[-1])]
     if isinstance(line, Conjure):
         if line.value.id == 'empty':
-            return Spirit([], {}, None), obj
+            return stack + [Func([])]
         else:
-            return interpret_line(line.value, obj)
+            return interpret_line(line.value, stack)
     if isinstance(line, Enchant):
-        obj.bindings[line.id.id].spells.append(line.value)
-        return None, obj
+        r = interpret_line(line.id, stack)
+        f = Func(copy(r[-1].code))
+        f.code.append(line.value)
+        return r[:-1] + [Var(line.id.id, f)]
     if isinstance(line, IO):
         if line.type == 'print':
-            p, obj = interpret_line(line.value, obj)
-            print(p)
-            return None, obj
+            s = interpret_line(line.value, stack)
+            print(s[-1])
+            return s[:-1]
         if line.type == 'read':
-            return input(), obj
+            return stack + [literal(input())]
     if isinstance(line, Return):
-        i, obj = interpret_line(line.value, obj)
-        return i.return_v, obj
+        r = interpret_line(line.value, stack)
+        return r[:-1] + [r[-1].value]
     if isinstance(line, Operator):
-        operators = {
-            '+': lambda l, r: l + r,
-            '-': lambda l, r: l - r,
-            '/': lambda l, r: l / r,
-            '*': lambda l, r: l * r,
-            '%': lambda l, r: l % r,
-            '=': lambda l, r: l == r,
-            '!=': lambda l, r: l != r,
-            '>': lambda l, r: l > r,
-            '<': lambda l, r: l < r,
-            '>=': lambda l, r: l >= r,
-            '<=': lambda l, r: l <= r,
-        }
-        return run_operator(operators[line.operation], line.left, line.right, obj)
+        l = interpret_line(line.left, stack)
+        r = interpret_line(line.right, l[:-1])
+        return r[:-1] + [operation(line.operation, l[-1], r[-1])]
     if isinstance(line, Conditional):
-        con, obj = interpret_line(line.condition, obj)
-        pprint(con)
+        con = interpret_line(line.condition, stack)[-1]
         if con:
-            return interpret_line(line.body, obj)
-        return None, obj
+            return interpret_line(line.body, stack)
+        return stack
     if isinstance(line, Summon):
-        spir, obj = interpret_line(line.id, obj)
-        spir = Spirit(deepcopy(spir.spells), {}, None)
-        spir.bindings['self'] = spir
-        for b in line.parameters:
-            val, obj = interpret_line(b.value, obj)
-            spir.bindings[b.id.id] = val
-        for spell in spir.spells:
-            r, spir = interpret_line(spell, spir)
-        pprint(r)
-        return spir, obj
+        spir = interpret_line(line.id, stack)
+        r = interpret_spirit(spir[-1].code, init_stack(line.parameters, stack))
+        return stack + [r[-1]]
     if isinstance(line, Unsummon):
-        spir, obj = interpret_line(line.id, obj)
+        spir = interpret_line(line.id, stack)
         if line.value:
-            r, obj = interpret_line(line.value, obj)
-            return Spirit(spir.spells, spir.bindings, r), obj
-        return spir, obj
+            r = interpret_line(line.value, stack)
+            return stack + [FuncReturn(r[-1])]
+        return stack + [FuncReturn(None)]

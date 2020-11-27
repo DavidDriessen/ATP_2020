@@ -81,4 +81,5 @@ class IO(NamedTuple):
 class Spirit(NamedTuple):
     spells: list
     bindings: dict
+    running: bool
     return_v: any
