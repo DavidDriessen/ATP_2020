@@ -5,66 +5,65 @@ from Types import *
 def parse_manuscript(spell: list[Token]) -> tuple[Optional[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
                                                                  Parameter, IO, Summon, Conjure, Enchant, Scoped,
                                                                  Conditional]], list[Token]]:
-    word = spell.pop(0)
+    word = spell[0]  # Get token from token list
     if word.type == Type.Identifier:
-        return Identifier(word.name), spell
+        return Identifier(word.name), spell[1:]
     if word.type == Type.Literal:
-        return Literal(word.name), spell
+        return Literal(word.name), spell[1:]
     if word.type == Type.Separator:
         if word.name == '(':
-            scoped, spell = parse_manuscript(spell)
-            if spell.pop(0).name != ')':
+            scoped, new_spell = parse_manuscript(spell[1:])
+            if new_spell.pop(0).name != ')':
                 raise Exception('Expected ")"')
-            return Scoped(scoped), spell
-        return None, spell
-        # return parse_manuscript(spell)
+            return Scoped(scoped), new_spell
+        return None, spell[1:]
     if word.type == Type.Operator:
-        one, spell = parse_manuscript(spell)
-        two, spell = parse_manuscript(spell)
-        return Operator(word.name, one, two), spell
+        one, new_spell = parse_manuscript(spell[1:])
+        two, new_spell = parse_manuscript(new_spell)
+        return Operator(word.name, one, two), new_spell
     if word.type == Type.Keyword:
         if word.name == 'bind':  # Create var
-            to, spell = parse_manuscript(spell)
-            i, spell = parse_manuscript(spell)
-            val, spell = parse_manuscript(spell)
-            return Bind(i, to, val), spell
-        if word.name == 'conjure':  # Call function
-            val, spell = parse_manuscript(spell)
-            return Conjure(val), spell
+            to, new_spell = parse_manuscript(spell[1:])  # Get object to bind it too
+            i, new_spell = parse_manuscript(new_spell)  # Get identifier
+            val, new_spell = parse_manuscript(new_spell)  # Parse value to bind
+            return Bind(i, to, val), new_spell
+        if word.name == 'conjure':  # Copy object
+            val, new_spell = parse_manuscript(spell[1:])
+            return Conjure(val), new_spell
         if word.name == 'empty':  # New object
-            return Identifier(word.name), spell
-        if word.name == 'enchant':
-            i, spell = parse_manuscript(spell)
-            val, spell = parse_manuscript(spell)
-            return Enchant(i, val), spell
+            return Identifier(word.name), spell[1:]
+        if word.name == 'enchant':  # Copy object
+            i, new_spell = parse_manuscript(spell[1:])  # Get identifier
+            val, new_spell = parse_manuscript(new_spell)  # Parse function instruction line
+            return Enchant(i, val), new_spell
         if word.name == 'if':
-            con, spell = parse_manuscript(spell)
-            bod, spell = parse_manuscript(spell)
-            return Conditional(con, bod), spell
-        if word.name == 'return':
-            i, spell = parse_manuscript(spell)
-            return Return(i), spell
-        if word.name == 'unsummon':  # return statement
-            i, spell = parse_manuscript(spell)
-            if spell[0].name == 'with':
-                spell.pop(0)
-                val, spell = parse_manuscript(spell)
-                return Unsummon(i, val), spell
-            return Unsummon(i, None), spell
+            con, new_spell = parse_manuscript(spell[1:])  # Parse condition
+            bod, new_spell = parse_manuscript(new_spell)  # Parse instruction after condition
+            return Conditional(con, bod), new_spell
+        if word.name == 'return':  # Get value returned from function
+            i, new_spell = parse_manuscript(spell[1:])
+            return Return(i), new_spell
+        if word.name == 'unsummon':  # Return statement
+            i, new_spell = parse_manuscript(spell[1:])  # Parse return statement
+            if new_spell[0].name == 'with':
+                new_spell.pop(0)
+                val, new_spell = parse_manuscript(new_spell)  # Parse value to return
+                return Unsummon(i, val), new_spell
+            return Unsummon(i, None), new_spell
         if word.name == 'set':  # assign var
-            i, spell = parse_manuscript(spell)
-            val, spell = parse_manuscript(spell)
-            return Bind(i, Identifier('self'), val), spell
+            i, new_spell = parse_manuscript(spell[1:])
+            val, new_spell = parse_manuscript(new_spell)
+            return Bind(i, Identifier('self'), val), new_spell
         if word.name == 'summon':  # Call function
-            i, spell = parse_manuscript(spell)
-            parameters, spell = parse_parameter(spell)
-            return Summon(i, parameters), spell
+            i, new_spell = parse_manuscript(spell[1:])
+            parameters, new_spell = parse_parameter(new_spell)
+            return Summon(i, parameters), new_spell
         if word.name == 'print':  # Print result
-            v, spell = parse_manuscript(spell)
-            return IO('print', v), spell
+            v, new_spell = parse_manuscript(spell[1:])
+            return IO('print', v), new_spell
         if word.name == 'read':  # Read user input
-            return IO('read', None), spell
-    return None, spell
+            return IO('read', None), spell[1:]
+    return None, spell[1:]
 
 
 def parse_parameter(spell, first=True):
