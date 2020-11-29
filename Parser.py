@@ -1,10 +1,10 @@
-from typing import Optional, Union
+from typing import Union
 from Types import *
 
 
 def parse_manuscript(spell: list[Token]) -> tuple[Optional[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
-                                                           Parameter, IO, Summon, Conjure, Enchant, Scoped,
-                                                           Conditional]], list[Token]]:
+                                                                 Parameter, IO, Summon, Conjure, Enchant, Scoped,
+                                                                 Conditional]], list[Token]]:
     word = spell.pop(0)
     if word.type == Type.Identifier:
         return Identifier(word.name), spell
@@ -81,6 +81,6 @@ def parse(manuscript):
     out = []
     while len(manuscript) > 0:
         o, manuscript = parse_manuscript(manuscript)
-        if o:
+        if o:  # Ignore empty lines
             out.append(o)
     return out
