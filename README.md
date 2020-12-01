@@ -1,18 +1,18 @@
-- Gekozen taal: Zelf ontworpen
-- Turing-compleet omdat:
+- Gekozen taal: Magic
+- Turing-compleet omdat: Het conditional branging heeft en geen gespecificeerde hoeveelheid geheugen (infinite memory) 
 
 Code is geschreven in functionele stijl.
 
 - ###Taal ondersteunt:
-    - Loops? Voorbeeld: [file] - [regel]
-    - Goto-statements? Voorbeeld: [file] - [regel]
+    - Loops? Voorbeeld: [voorbeeld.txt] - [1-6]  # Functie is automaties een loop
+    - Goto-statements? Voorbeeld: [voorbeeld.txt] - [7]
     - Lambda-calculus? Voorbeeld: [files] - [regels]
 
 - ###Bevat: 
-    - Classes met inheritance: bijvoorbeeld [file] - [regel]
-    - Object-printing voor elke class: [ja/nee]
+    - Classes met inheritance: bijvoorbeeld [Types.py] - [13]
+    - Object-printing voor elke class: [nee]
     - Decorator: functiedefinitie op [file] - [regel], toegepast op [file] - [regel]
-    - Type-annotatie: Haskell-stijl in comments: [ja/nee]; Python-stijl in functiedefinities: [ja/nee]
+    - Type-annotatie: Haskell-stijl in comments: [nee]; Python-stijl in functiedefinities: [ja]
     - Minstens drie toepassingen van hogere-orde functies:
         1. [file] - [regel]
         2. [file] - [regel]

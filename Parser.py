@@ -66,17 +66,19 @@ def parse_manuscript(spell: list[Token]) -> tuple[Optional[Union[Operator, Ident
     return None, spell[1:]
 
 
-def parse_parameter(spell, first=True):
+def parse_parameter(spell: list[Token], first: bool = True) -> tuple[list[Parameter], list[Token]]:
     if (first and spell[0].name == 'with') or spell[0].name == 'and':
-        spell.pop(0)
-        i, spell = parse_manuscript(spell)
-        v, spell = parse_manuscript(spell)
-        next, spell = parse_parameter(spell, False)
-        return [Parameter(i, v)] + next, spell
+        new_spell = spell[1:]
+        i, new_spell = parse_manuscript(new_spell)
+        v, new_spell = parse_manuscript(new_spell)
+        next_par, new_spell = parse_parameter(new_spell, False)
+        return [Parameter(i, v)] + next_par, new_spell
     return [], spell
 
 
-def parse(manuscript):
+def parse(manuscript: list[Token]) -> list[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
+                                                 Parameter, IO, Summon, Conjure, Enchant, Scoped,
+                                                 Conditional]]:
     out = []
     while len(manuscript) > 0:
         o, manuscript = parse_manuscript(manuscript)

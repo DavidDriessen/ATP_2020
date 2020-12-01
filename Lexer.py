@@ -19,13 +19,13 @@ def read_spell(spell: list[str], scope=0) -> list[Token]:
 
 
 # Check if it is a keyword
-def is_keyword(key):
+def is_keyword(key: str) -> bool:
     return key in ['unsummon', 'summon', 'summonhold', 'conjure', 'enchant', 'dispel', 'bind', 'bindself', 'with',
                    'empty', 'print', 'set', 'skip', 'if', 'return', 'read', 'print']
 
 
 # Check if it is a operator
-def is_operator(key):
+def is_operator(key: str) -> bool:
     return key in ['+', '-', '/', '*', '%', '=', '!=', '>', '<', '>=', '<=', 'and', 'concat']
 
 
@@ -43,7 +43,7 @@ def get_token_type(word: str) -> Type:
 
 
 # Create a token
-def gen_token(word):
+def gen_token(word: str) -> Token:
     return Token(word, get_token_type(word))
 
 

@@ -1,8 +1,12 @@
 from copy import copy
+from typing import Union, Callable
+
 from Types import *
 
 
-def run_operator(f, l, r, obj):
+def run_operator(f: Callable[[Union[int, float, bool], Union[int, float, bool]], Union[int, float, bool]],
+                 l: NamedTuple, r: NamedTuple, obj: list[NamedTuple]) -> tuple[
+    Union[int, float, bool], list[NamedTuple]]:
     l, obj = interpret_line(l, obj)
     r, obj = interpret_line(r, obj)
     return f(l, r), obj
@@ -42,23 +46,23 @@ def find_var(name, stack, got=False):
     return [stack[-1]] + find_var(name, stack[:-1], got)
 
 
-def interpret_code(code: list, stack: list):
+def interpret_code(code: list[NamedTuple], stack: list[NamedTuple]):
     new_stack = stack + interpret_line(code[0], stack)
     return interpret_code(code[1:], new_stack)
 
 
-def interpret_spirit(code: list, stack=[]):
+def interpret_spirit(code: list[NamedTuple], stack: list[NamedTuple] = []):
     new_stack = interpret_line(code[0], stack)
     if len(new_stack) > 0 and isinstance(new_stack[-1], FuncReturn):
         return new_stack
     return interpret_spirit(code[1:] + [code[0]], new_stack)
 
 
-def interpret(code: list):
+def interpret(code: list[NamedTuple]):
     interpret_spirit(code)
 
 
-def operation(operator, l, r):
+def operation(operator, l: Union[int, float, bool], r: Union[int, float, bool]) -> Union[int, float, bool]:
     operators = {
         '+': lambda l, r: l + r,
         '-': lambda l, r: l - r,
