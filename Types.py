@@ -52,7 +52,7 @@ class Conditional(NamedTuple):
 
 
 class Conjure(NamedTuple):
-    value: any
+    value: Identifier
 
 
 class Scoped(NamedTuple):

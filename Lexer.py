@@ -1,8 +1,11 @@
 import re
+
+from typing import List
+
 from Types import Token, Type
 
 
-def read_manuscript(script: str) -> list[Token]:
+def read_manuscript(script: str) -> List[Token]:
     # Separate separators from other words
     script = re.sub(r'\(', ' ( ', script)
     script = re.sub(r'\)', ' ) ', script)
@@ -10,7 +13,7 @@ def read_manuscript(script: str) -> list[Token]:
     return read_spell(script.split(' '))
 
 
-def read_spell(spell: list[str], scope=0) -> list[Token]:
+def read_spell(spell: List[str], scope=0) -> List[Token]:
     if len(spell) == 0:  # End of code
         return []
     if spell[0] == '':  # Ignore double spaces
@@ -48,7 +51,7 @@ def gen_token(word: str) -> Token:
 
 
 # Start to lex a file
-def open_manuscript(path) -> list[Token]:
+def open_manuscript(path) -> List[Token]:
     with open(path, 'r') as filename:  # Open file
         manuscript = ''.join(filename.readlines())  # Read all lines from file
         return read_manuscript(manuscript)

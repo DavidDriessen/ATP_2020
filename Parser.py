@@ -1,10 +1,10 @@
-from typing import Union
+from typing import Union, Tuple, List
 from Types import *
 
 
-def parse_manuscript(spell: list[Token]) -> tuple[Optional[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
+def parse_manuscript(spell: List[Token]) -> Tuple[Optional[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
                                                                  Parameter, IO, Summon, Conjure, Enchant, Scoped,
-                                                                 Conditional]], list[Token]]:
+                                                                 Conditional]], List[Token]]:
     word = spell[0]  # Get token from token list
     if word.type == Type.Identifier:
         return Identifier(word.name), spell[1:]
@@ -66,7 +66,7 @@ def parse_manuscript(spell: list[Token]) -> tuple[Optional[Union[Operator, Ident
     return None, spell[1:]
 
 
-def parse_parameter(spell: list[Token], first: bool = True) -> tuple[list[Parameter], list[Token]]:
+def parse_parameter(spell: List[Token], first: bool = True) -> Tuple[List[Parameter], List[Token]]:
     if (first and spell[0].name == 'with') or spell[0].name == 'and':
         new_spell = spell[1:]
         i, new_spell = parse_manuscript(new_spell)
@@ -76,7 +76,7 @@ def parse_parameter(spell: list[Token], first: bool = True) -> tuple[list[Parame
     return [], spell
 
 
-def parse(manuscript: list[Token]) -> list[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
+def parse(manuscript: List[Token]) -> List[Union[Operator, Identifier, Literal, Bind, Return, Unsummon,
                                                  Parameter, IO, Summon, Conjure, Enchant, Scoped,
                                                  Conditional]]:
     out = []

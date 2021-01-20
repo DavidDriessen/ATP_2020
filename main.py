@@ -1,3 +1,4 @@
+from Compiler import compile_magic
 from Interpreter import interpret
 from Lexer import open_manuscript
 from Parser import parse
@@ -10,4 +11,5 @@ if __name__ == '__main__':
     code = parse(code)
     # Add return to main loop
     code.append(Unsummon(Identifier('self'), None))
-    interpret(code)
+    # interpret(code)
+    compile_magic(code)
