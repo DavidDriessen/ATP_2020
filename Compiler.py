@@ -23,8 +23,7 @@ def compile_line(line: Union[Summon, Conjure, Bind, Enchant, None], data, func, 
     if isinstance(line, Bind):
         r = compile_line(line.value, data, func, main, var)
         r[3].append(line.id.id)
-        r[2] += "\nstr r4, [r7, #" + str(get_var_num(line.to.id, r[3])) + "]"
-        return r
+        return r[0], r[1], r[2] + "\nstr r4, [r7, #" + str(get_var_num(line.id.id, r[3])) + "]", r[3]
     if isinstance(line, Conjure):
         if line.value.id == "empty":
             return data, func, main + "\
@@ -39,7 +38,7 @@ def compile_line(line: Union[Summon, Conjure, Bind, Enchant, None], data, func, 
         else:
             return data, func, main + "movs r4, [r7, #" + str(get_var_num(line.value.id, var)) + "]", var
     if isinstance(line, Enchant):
-        func_name = line.id.id + count(func, line.id.id)
+        func_name = line.id.id + str(count(func, line.id.id))
         r = compile_line(line.value, data, func, "", var)
         return data, func + [[
             line.id.id,
@@ -56,6 +55,15 @@ def compile_line(line: Union[Summon, Conjure, Bind, Enchant, None], data, func, 
           adds r3, r3, #4\
           ldr r2, " + func_name + "\
           str r2, [r3]", var
+    if isinstance(line, Unsummon):
+        r = compile_line(line.value, data, func, main, var)
+        return r[0], r[1], r[2] + "pop", r[3]
+    if isinstance(line, Summon):
+        r = compile_line(line.parameters, data, func, main, var)
+        return r[0], r[1], r[2] + "\
+        push    {r4, lr}\
+        movs    r0, #5\
+        bl      " + line.id.id, r[3]
 
 
 def compile_magic(script: List[Union[Summon, Conjure, Bind, Enchant]]) -> str:
