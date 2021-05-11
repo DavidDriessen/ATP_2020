@@ -35,6 +35,12 @@ class Bind(NamedTuple):
     value: any
 
 
+class Set(NamedTuple):
+    id: Identifier
+    to: Identifier
+    value: any
+
+
 class Enchant(NamedTuple):
     id: Identifier
     value: any

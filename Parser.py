@@ -53,7 +53,7 @@ def parse_manuscript(spell: List[Token]) -> Tuple[Optional[Union[Operator, Ident
         if word.name == 'set':  # assign var
             i, new_spell = parse_manuscript(spell[1:])
             val, new_spell = parse_manuscript(new_spell)
-            return Bind(i, Identifier('self'), val), new_spell
+            return Set(i, Identifier('self'), val), new_spell
         if word.name == 'summon':  # Call function
             i, new_spell = parse_manuscript(spell[1:])
             parameters, new_spell = parse_parameter(new_spell)

@@ -4,5 +4,5 @@ enchant fib set t b
 enchant fib set b + a b
 enchant fib set a t
 enchant fib set n - n 1
-bind self result summon fib with a 0 and b 1 and n (read)
+set result summon fib with a 0 and b 1 and n (read)
 print (return result)

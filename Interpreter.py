@@ -92,10 +92,8 @@ def interpret_line(line: NamedTuple, stack: list):
         return find_var(line.id, stack)
     if isinstance(line, Scoped):
         return stack + interpret_line(line.scope, stack)
-    if isinstance(line, Bind):
+    if isinstance(line, Bind) or isinstance(line, Set):
         r = interpret_line(line.value, stack)
-        # pprint(line)
-        # pprint(r[-1])
         return r[:-1] + [Var(line.id.id, r[-1])]
     if isinstance(line, Conjure):
         if line.value.id == 'empty':

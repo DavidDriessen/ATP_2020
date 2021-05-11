@@ -5,10 +5,11 @@ from Types import *
 
 
 def init_asm_file():
-    data = ".data:\n"
-    func = []
+    data = ".Dep:\n" \
+           ".word   _ZSt4cout\n"
+    data += ".data:\n"
     main = ""
-    return data, func, main, []
+    return data, main, []
 
 
 def count(param, id):
@@ -17,62 +18,106 @@ def count(param, id):
     return count(param[1:], id) + (1 if param[0][0] == id else 0)
 
 
-def compile_line(line: Union[Summon, Conjure, Bind, Enchant, None], data, func, main, var: list):
+def build_function(func_id: str, lines: list, vars: list):
+    if len(lines) > 0:
+        line = lines[0]
+        if isinstance(line, Enchant) and line.id.id == func_id:
+            code, v = compile_line(line.value, vars)
+            code2, v2 = build_function(func_id, lines[1:], v)
+            return code + code2, v2
+        return build_function(func_id, lines[1:], vars)
+    return '', vars
+
+
+def compile_functions(lines: list):
+    if len(lines) > 0:
+        line = lines[0]
+        if isinstance(line, Bind):
+            if isinstance(line.value, Conjure):
+                code, v = compile_functions(lines[1:])
+                f_code, fv = build_function(line.id.id, lines[1:], [])
+                return line.id.id + ":\n" + f_code + "\n" + code, v + fv
+        return compile_functions(lines[1:])
+    return '', []
+
+
+def compile_line(line: Union[Summon, Conjure, Bind, Enchant, None], var: list):
     if line is None:
-        return data, func, main, var
-    if isinstance(line, Bind):
-        r = compile_line(line.value, data, func, main, var)
-        r[3].append(line.id.id)
-        return r[0], r[1], r[2] + "\nstr r4, [r7, #" + str(get_var_num(line.id.id, r[3])) + "]", r[3]
-    if isinstance(line, Conjure):
-        if line.value.id == "empty":
-            return data, func, main + "\
-          movs r3, #129\
-          lsls r3, r3, #3\
-          movs r0, r3\
-          bl operator new(unsigned int)\
-          movs r3, r0\
-          movs r4, r3\
-          movs r0, r4\
-          bl Spirrit::Spirrit() [complete object constructor]", var
-        else:
-            return data, func, main + "movs r4, [r7, #" + str(get_var_num(line.value.id, var)) + "]", var
-    if isinstance(line, Enchant):
-        func_name = line.id.id + str(count(func, line.id.id))
-        r = compile_line(line.value, data, func, "", var)
-        return data, func + [[
-            line.id.id,
-            r[2]
-        ]], main + "ldr r3, [r7, #4]\
-          ldr r3, [r3]\
-          adds r1, r3, #1\
-          ldr r2, [r7, #4]\
-          str r1, [r2]\
-        \
-          ldr r2, [r7, #4]\
-          lsls r3, r3, #2\
-          adds r3, r2, r3\
-          adds r3, r3, #4\
-          ldr r2, " + func_name + "\
-          str r2, [r3]", var
+        return "", var
+    if isinstance(line, Set):
+        r = compile_line(line.value, var)
+        r[1].append(line.id.id)
+        return "ldr     r4, " + r[0] + "\nstr     r4, [r7, #" + str(get_var_num(line.id.id, r[1])) + "]\n", r[1]
     if isinstance(line, Unsummon):
-        r = compile_line(line.value, data, func, main, var)
-        return r[0], r[1], r[2] + "pop", r[3]
+        r = compile_line(line.value, var)
+        return "ldr     r3, " + r[0] + "\nbx     lr\n", r[1]
     if isinstance(line, Summon):
-        r = compile_line(line.parameters, data, func, main, var)
-        return r[0], r[1], r[2] + "\
-        push    {r4, lr}\
-        movs    r0, #5\
-        bl      " + line.id.id, r[3]
+        code, v = compile_line(line.parameters, var)
+        return code + "\n" + \
+               "push    {r4, lr}\n" + \
+               "movs    r0, #5\n" + \
+               "bl      .func_" + line.id.id, v
+    if isinstance(line, Literal):
+        return "#" + line.value, var
+    if isinstance(line, Identifier):
+        try:
+            p = var.index(line.id)
+            v = var
+        except ValueError:
+            p = len(var)
+            v = var + [line.id]
+        return "[sp, #" + str((p + 1) * 4) + "]", v
+    if isinstance(line, Operator):
+        codel, v = compile_line(line.left, var)  # Expect literal or var
+        coder, v = compile_line(line.right, v)  # Expect literal or var
+        code = "ldr     r2, " + codel + "\n"
+        code += "ldr     r3, " + coder + "\n"
+        code += "cmp     r2, r3\n"
+        if line.operation == '>':
+            code += "ble     "
+        if line.operation == '=':
+            code += "bne     "
+        if line.operation == '!':
+            code += "beq     "
+        if line.operation == '<':
+            code += "bge     "
+        return code, v
+    if isinstance(line, Scoped):
+        code, v = compile_line(line.scope, var)
+        return code, v
+    if isinstance(line, Conditional):
+        code, v = compile_line(line.condition, var)
+        code += ".L3\n"
+        codeb, v = compile_line(line.body, v)
+        code += codeb
+        code += ".L3:\n"
+        return code, v
+    if isinstance(line, IO):
+        if line.type == 'print':
+            addr, v = compile_line(line.value, var)  # Expect literal or var
+            code = "ldr     r1, " + addr + "\n"
+            code += "ldr     r0, .Dep\n"
+            code += "bl      std::basic_ostream<char, std::char_traits<char> >::operator<<(int)\n"
+            return code, v
+    return '', var
+
+
+def compile_lines(lines: List[Union[Summon, Conjure, Bind, Enchant]], var: list):
+    if len(lines) == 0:
+        return '', var
+    code, v = compile_line(lines[0], var)
+    code_next, v = compile_lines(lines[1:], v)
+    return code + "\n" + code_next, v
 
 
 def compile_magic(script: List[Union[Summon, Conjure, Bind, Enchant]]) -> str:
-    data, func, main, var = init_asm_file()
+    data, main, var = init_asm_file()
 
-    for line in script:
-        compile_line(line, data, func, main, var)
+    func, v = compile_functions(script)
+    code, var = compile_lines(script, var)
+    print(func)
 
-    return data + "\n" + spirit_obj + "\n" + summon_helper + "\n" + func + "\n" + main
+    return data + "\n" + code + "\n" + spirit_obj + "\n" + summon_helper + "\n" + func + "\n" + main
 
 
 def get_var_num(id, var: list):
