@@ -12,4 +12,5 @@ if __name__ == '__main__':
     # Add return to main loop
     code.append(Unsummon(Identifier('self'), None))
     # interpret(code)
-    compile_magic(code)
+    asm = compile_magic(code)
+    print(asm)
